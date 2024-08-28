@@ -18,10 +18,7 @@ class app:
 
 		self.root = Tk()
 		self.canvas = Canvas(self.root, width=self.width, height=self.height)
-		self.entry_focused = -1
-		self.button_focused = -1
-		self.clipboard_button_focused = -1
-		self.code_button_focused = -1
+		self.focused = None
 
 		self.dfont = tkFont.nametofont("TkDefaultFont")
 		self.family = self.dfont.actual("family")
@@ -35,64 +32,41 @@ class app:
 
 	def keypress(self, event):
 		if event.keysym in {'Escape'}:
-			if self.entry_focused < 0 or self.button_focused > 0:
+			if self.focused == None:
 				self.root.quit()
-			elif self.entry_focused > 0:
+			else:
 				self.root.focus_set() # type: ignore
 	
 	def create_frame(self, obj, pd=8):
 		return Frame(obj, padding=pd) # type: ignore
 	
-	def create_label(self, frm, txt, ):
+	def create_label(self, frm, txt):
 		return Label(frm, text=txt, font=(self.family, int(self.size*1.3)))
 	
 	def create_entry(self, frm, show=None):
-		def switch_entry_focused(self):
-			self.entry_focused *= -1
+		def focus_in(event):
+			self.focused = "entry"
+
+		def focus_out(event):
+			self.focused = None
 
 		context = StringVar()
 		obj = Entry(frm, textvariable=context, show=show) # type: ignore
-		obj.bind("<FocusIn>", switch_entry_focused(self)) # type: ignore
-		obj.bind("<FocusOut>", switch_entry_focused(self)) # type: ignore
+		obj.bind("<FocusIn>", focus_in) # type: ignore
+		obj.bind("<FocusOut>", focus_out) # type: ignore
 		return obj, context
 	
-	def create_button(self, frm, txt):
-		def switch_button_focused(self):
-			self.button_focused *= -1
+	def create_button(self, frm, txt, cmd):
+		def focus_in(event):
+			self.focused = "button"
 
-		obj = Button(frm,
-			   text=txt,
-			   command=lambda: self.update(), # type: ignore
-		)
-		obj.bind("<FocusIn>", switch_button_focused(self)) # type: ignore
-		obj.bind("<FocusOut>", switch_button_focused(self)) # type: ignore
-		obj.bind("<Return>", lambda event: obj.invoke())
-		return obj
+		def focus_out(event):
+			self.focused = None
 
-	def create_clipboard_button(self, frm, txt):
-		def switch_clipboard_button_focused(self):
-			self.clipboard_button_focused *= -1
-
-		obj = Button(frm,
-               		text=txt,
-                 	command=lambda: pyperclip.copy(self.code)
-		)
-		obj.bind("<FocusIn>", switch_clipboard_button_focused(self)) # type: ignore
-		obj.bind("<FocusOut>", switch_clipboard_button_focused(self)) # type: ignore
-		obj.bind("<Return>", lambda event: obj.invoke())
-		return obj
-
-	def create_code_button(self, frm, txt):
-		def switch_code_button_focused(self):
-			self.code_button_focused *= -1
-
-		obj = Button(frm,
-               		text=txt,
-                 	command=lambda: self.adapt()
-		)
-		obj.bind("<FocusIn>", switch_code_button_focused(self)) # type: ignore
-		obj.bind("<FocusOut>", switch_code_button_focused(self)) # type: ignore
-		obj.bind("<Return>", lambda event: obj.invoke())
+		obj = Button(frm, text=txt, command=cmd) # type: ignore
+		obj.bind("<FocusIn>", focus_in) # type: ignore
+		obj.bind("<FocusOut>", focus_out) # type: ignore
+		obj.bind("<Return>", lambda event: obj.invoke()) # type: ignore
 		return obj
 
 	def adapt(self):
@@ -120,18 +94,16 @@ class app:
 		self.show()
 
 	def update(self):
-		def checkVal(obj):
+		def checkVal(val):
 			try: 
-				obj = int(obj)
-				if obj <= 0: obj = 0
-				elif obj >= 255: obj = 255
+				val = int(val)
+				return min(max(val, 0), 255)
 			except ValueError:
-				obj = 0
-			return obj
+				return 0
 
 		red = checkVal(self.red.get()) # type: ignore
 		green = checkVal(self.green.get()) # type: ignore
-		blue = checkVal(self.blue.get()) # type: ignore
+		blue = checkVal(self.blue.get()) # type: ignore  
 
 		self.code = "".join([f'{red:x}'.zfill(2), f'{green:x}'.zfill(2), f'{blue:x}'.zfill(2)])
 
@@ -151,33 +123,41 @@ class app:
 
 	def exe(self):
 		currentFrm = self.create_frame(self.root)
+
 		redFrm = self.create_frame(self.root)
 		greenFrm = self.create_frame(self.root)
 		blueFrm = self.create_frame(self.root)
+
 		codeFrm = self.create_frame(self.root, 28)
+
 
 		self.code = "".join([f'{self.red:x}'.zfill(2), f'{self.green:x}'.zfill(2), f'{self.blue:x}'.zfill(2)])
 
 		self.currentLabel = self.create_label(currentFrm, f"R: {self.red}\tG: {self.green}\tB: {self.blue}")
 		self.codeLabel = self.create_label(currentFrm, f"Code: {self.code}")
+
 		redLabel = self.create_label(redFrm, "R")
 		greenLabel = self.create_label(greenFrm, "G")
 		blueLabel = self.create_label(blueFrm, "B")
+
 		codeLabel = self.create_label(codeFrm, "Code")
+
 
 		redEntry, self.red = self.create_entry(redFrm)
 		greenEntry, self.green = self.create_entry(greenFrm)
 		blueEntry, self.blue = self.create_entry(blueFrm)
+
 		codeEntry, self.color_code = self.create_entry(codeFrm)
 
-		commit = self.create_button(self.root, "Change")
-		clipboard = self.create_clipboard_button(currentFrm, "Copy")
-		adapt = self.create_code_button(codeFrm, "Adapt")
+
+		commit = self.create_button(self.root, "Change", self.update)
+		clipboard = self.create_button(currentFrm, "Copy", lambda: pyperclip.copy(self.code))
+		adapt = self.create_button(codeFrm, "Adapt", self.adapt)
 
 		currentFrm.pack()
 		self.currentLabel.pack(side=TOP)
 		self.codeLabel.pack(side=TOP)
-		clipboard.pack(side=TOP)
+		clipboard.pack(side=TOP) # type: ignore
 
 		redFrm.pack()
 		redLabel.pack(side=LEFT)
@@ -191,12 +171,12 @@ class app:
 		blueLabel.pack(side=LEFT)
 		blueEntry.pack(side=LEFT)
 
-		commit.pack()
+		commit.pack() # type: ignore
 
 		codeFrm.pack()
 		codeLabel.pack(side=LEFT)
 		codeEntry.pack(side=LEFT)
-		adapt.pack()
+		adapt.pack() # type: ignore
 
 		self.root.mainloop()
 

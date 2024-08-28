@@ -107,7 +107,11 @@ class app:
 		blue = color_code[number//3*3-1*number//3:number//3*3] # type: ignore
 
 		self.code = color_code
-		red, green, blue = int(red, 16), int(green, 16), int(blue, 16)
+
+		try:
+			red, green, blue = int(red, 16), int(green, 16), int(blue, 16)
+		except ValueError:
+			return
 
 		self.img[0:self.height, 0:self.width] = [blue, green, red]
 		self.currentLabel["text"] = f"R: {red}\t G: {green}\tB: {blue}"

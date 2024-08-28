@@ -96,21 +96,17 @@ class app:
 		return obj
 
 	def adapt(self):
-		self.color_code = self.color_code.get() # type: ignore
-		if len(self.color_code) not in {3,6}:
+		color_code = self.color_code.get() # type: ignore
+		if len(color_code) not in {3,6}:
 			pass
 
-		number = len(self.color_code)
+		number = len(color_code)
 
-		print(self.color_code, number)
+		red = color_code[number//3*1-1*number//3:number//3*1] # type: ignore
+		green = color_code[number//3*2-1*number//3:number//3*2] # type: ignore
+		blue = color_code[number//3*3-1*number//3:number//3*3] # type: ignore
 
-		red = self.color_code[number//3*1-1*number//3:number//3*1] # type: ignore
-		green = self.color_code[number//3*2-1*number//3:number//3*2] # type: ignore
-		blue = self.color_code[number//3*3-1*number//3:number//3*3] # type: ignore
-
-		print(red, green, blue, type(red))
-
-		self.code = self.color_code
+		self.code = color_code
 		red, green, blue = int(red, 16), int(green, 16), int(blue, 16)
 
 		self.img[0:self.height, 0:self.width] = [blue, green, red]
